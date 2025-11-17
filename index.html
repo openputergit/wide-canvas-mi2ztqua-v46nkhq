@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Therapy & Counseling Platform</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+        .active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- Loading Animation -->
+        <div class="loading" :class="{ active: loading }">
+            <div class="bg-white p-8 rounded shadow">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">TherapyConnect</h1>
+                <div class="space-x-4">
+                    <button @click="currentView = 'home'" class="px-4 py-2 hover:bg-blue-700 rounded">Home</button>
+                    <button @click="currentView = 'resources'" class="px-4 py-2 hover:bg-blue-700 rounded">Resources</button>
+                    <button @click="currentView = 'aiChat'" class="px-4 py-2 hover:bg-blue-700 rounded">AI Assistant</button>
+                    <button @click="currentView = 'contact'" class="px-4 py-2 hover:bg-blue-700 rounded">Contact</button>
+                    <button @click="currentView = 'hipaa'" class="px-4 py-2 hover:bg-blue-700 rounded">Security</button>
+                    <button @click="currentView = 'login'" class="px-4 py-2 hover:bg-blue-700 rounded" v-if="!isLoggedIn">Login</button>
+                    <button @click="currentView = 'signup'" class="px-4 py-2 hover:bg-blue-700 rounded" v-if="!isLoggedIn">Sign Up</button>
+                    <button @click="currentView = user.role === 'client' ? 'dashboard' : 'therapistDashboard'" class="px-4 py-2 hover:bg-blue-700 rounded" v-if="isLoggedIn">Dashboard</button>
+                    <button @click="logout" class="px-4 py-2 hover:bg-blue-700 rounded" v-if="isLoggedIn">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container mx-auto px-4 py-8">
+            <!-- Home Page -->
+            <div v-if="currentView === 'home'">
+                <!-- Hero Section -->
+                <section class="text-center py-20">
+                    <img src="https://source.unsplash.com/featured/?therapy" alt="Therapy" class="mx-auto mb-8 w-64 h-64 object-cover rounded-full shadow-lg">
+                    <h1 class="text-4xl font-bold mb-4 text-gray-800">Online Therapy & Counseling</h1>
+                    <p class="text-xl mb-8 text-gray-600">Connect with licensed therapists through secure video calls, chat sessions, and resource libraries.</p>
+                    <button @click="currentView = 'signup'" class="bg-blue-500 text-white px-6 py-3 rounded-lg mr-4 hover:bg-blue-600">Get Therapy</button>
+                    <button @click="currentView = 'login'" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600">Login</button>
+                </section>
+
+                <!-- How it Works -->
+                <section class="py-20">
+                    <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">How it Works</h2>
+                    <div class="grid md:grid-cols-4 gap-8">
+                        <div class="text-center">
+                            <div class="bg-blue-500 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">1</div>
+                            <h3 class="font-bold text-gray-800">Sign Up</h3>
+                            <p class="text-gray-600">Create your account as client or therapist.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-blue-500 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">2</div>
+                            <h3 class="font-bold text-gray-800">Complete Assessment</h3>
+                            <p class="text-gray-600">Fill out pre-session assessments.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-blue-500 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">3</div>
+                            <h3 class="font-bold text-gray-800">Book Session</h3>
+                            <p class="text-gray-600">Choose a therapist and schedule.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-blue-500 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">4</div>
+                            <h3 class="font-bold text-gray-800">Start Therapy</h3>
+                            <p class="text-gray-600">Join secure sessions from anywhere.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Therapist Profiles -->
+                <section class="py-20 bg-gray-100">
+                    <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Our Therapists</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div v-for="therapist in therapists" :key="therapist.id" class="bg-white p-6 rounded-lg shadow">
+                            <img :src="therapist.image" alt="Therapist" class="w-24 h-24 rounded-full mx-auto mb-4">
+                            <h3 class="font-bold text-center text-gray-800">{{therapist.name}}</h3>
+                            <p class="text-center text-gray-600">{{therapist.specialization}}</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Benefits -->
+                <section class="py-20">
+                    <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Benefits of Online Therapy</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="flex items-center">
+                            <i class="bi bi-check-circle text-green-500 mr-4"></i>
+                            <span>Convenient access from home</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="bi bi-check-circle text-green-500 mr-4"></i>
+                            <span>Flexible scheduling</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="bi bi-check-circle text-green-500 mr-4"></i>
+                            <span>Confidential and secure</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="bi bi-check-circle text-green-500 mr-4"></i>
+                            <span>Wide range of specialists</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Testimonials -->
+                <section class="py-20 bg-gray-100">
+                    <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">What Our Clients Say</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <p class="text-gray-600 mb-4">"This platform has been a game-changer for my mental health. The therapists are professional and caring."</p>
+                            <p class="font-bold text-gray-800">- Sarah M.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <p class="text-gray-600 mb-4">"Easy to use and very secure. I feel safe sharing my thoughts."</p>
+                            <p class="font-bold text-gray-800">- John D.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Security & HIPAA -->
+                <section class="py-20">
+                    <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Security & HIPAA Compliance</h2>
+                    <div class="flex justify-center flex-wrap gap-8">
+                        <div class="bg-green-100 p-4 rounded-lg text-center">
+                            <i class="bi bi-shield-check text-2xl text-green-600 mb-2"></i>
+                            <p class="font-bold">HIPAA Compliant</p>
+                        </div>
+                        <div class="bg-green-100 p-4 rounded-lg text-center">
+                            <i class="bi bi-lock text-2xl text-green-600 mb-2"></i>
+                            <p class="font-bold">Encrypted Communication</p>
+                        </div>
+                        <div class="bg-green-100 p-4 rounded-lg text-center">
+                            <i class="bi bi-file-earmark-lock text-2xl text-green-600 mb-2"></i>
+                            <p class="font-bold">Secure Session Logs</p>
+                        </div>
+                        <div class="bg-green-100 p-4 rounded-lg text-center">
+                            <i class="bi bi-person-check text-2xl text-green-600 mb-2"></i>
+                            <p class="font-bold">Licensed Therapists</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Login Form -->
+            <div v-if="currentView === 'login'" class="max-w-md mx-auto">
+                <div class="bg-white p-8 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Login</h2>
+                    <form @submit.prevent="handleLogin" class="space-y-4">
+                        <div>
+                            <label class="block mb-2 text-gray-700">Email</label>
+                            <input type="email" v-model="loginForm.email" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Password</label>
+                            <input type="password" v-model="loginForm.password" required class="w-full p-2 border rounded">
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white w-full p-2 rounded hover:bg-blue-600">Login</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div v-if="currentView === 'signup'" class="max-w-md mx-auto">
+                <div class="bg-white p-8 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Sign Up</h2>
+                    <form @submit.prevent="handleSignup" class="space-y-4">
+                        <div>
+                            <label class="block mb-2 text-gray-700">Name</label>
+                            <input type="text" v-model="signupForm.name" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Email</label>
+                            <input type="email" v-model="signupForm.email" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Password</label>
+                            <input type="password" v-model="signupForm.password" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Role</label>
+                            <select v-model="signupForm.role" required class="w-full p-2 border rounded">
+                                <option value="client">Client</option>
+                                <option value="therapist">Therapist</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="bg-green-500 text-white w-full p-2 rounded hover:bg-green-600">Sign Up</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Client Dashboard -->
+            <div v-if="currentView === 'dashboard' && user.role === 'client'">
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">Client Dashboard</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-8">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Upcoming Sessions</h3>
+                            <div v-if="appointments.length === 0" class="text-gray-500">No upcoming appointments</div>
+                            <div v-for="appointment in appointments" :key="appointment.id" class="bg-blue-50 p-4 mb-4 rounded">
+                                <p class="font-bold text-gray-800">{{appointment.date}}</p>
+                                <p class="text-gray-600">{{appointment.therapistName}} - {{appointment.type}}</p>
+                                <button @click="joinSession(appointment.id)" class="bg-blue-500 text-white px-4 py-2 rounded mt-2 hover:bg-blue-600">Join Session</button>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Quick Chat Access</h3>
+                            <button @click="currentView = 'video'" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Start Chat</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-8">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Book Appointment</h3>
+                            <button @click="currentView = 'booking'" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Book Now</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-8">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">AI Therapy Assistant</h3>
+                            <p class="text-gray-600 mb-4">Get instant information about therapy and resources.</p>
+                            <button @click="currentView = 'aiChat'" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Chat with AI</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Mental Health Resources</h3>
+                            <div class="space-y-4">
+                                <a v-for="resource in resources.slice(0,3)" :key="resource.id" href="#" class="block bg-gray-50 p-4 rounded hover:bg-gray-100">
+                                    <h4 class="font-bold text-gray-800">{{resource.title}}</h4>
+                                    <p class="text-gray-600">{{resource.description}}</p>
+                                </a>
+                            </div>
+                            <button @click="currentView = 'resources'" class="text-blue-500 mt-4">View All Resources</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Therapist Dashboard -->
+            <div v-if="currentView === 'therapistDashboard' && user.role === 'therapist'">
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">Therapist Dashboard</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-8">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Scheduled Appointments</h3>
+                            <div v-for="appointment in therapistAppointments" :key="appointment.id" class="bg-blue-50 p-4 mb-4 rounded">
+                                <p class="font-bold text-gray-800">{{appointment.date}} - {{appointment.clientName}}</p>
+                                <button @click="startSession(appointment.id)" class="bg-blue-500 text-white px-4 py-2 rounded mt-2 hover:bg-blue-600">Start Session</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-8">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Patient Notes</h3>
+                            <textarea v-model="notes" class="w-full p-2 border rounded" rows="5" placeholder="Add session notes..."></textarea>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-8">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">AI Therapy Assistant</h3>
+                            <p class="text-gray-600 mb-4">Access AI for additional insights and resources.</p>
+                            <button @click="currentView = 'aiChat'" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Chat with AI</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Profile & Availability</h3>
+                            <p class="text-gray-600">Manage your profile, availability, and calendar sync here.</p>
+                            <button class="bg-blue-500 text-white px-4 py-2 rounded mt-2 hover:bg-blue-600">Edit Profile</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appointment Booking Page -->
+            <div v-if="currentView === 'booking'">
+                <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Book Appointment</h2>
+                    <form @submit.prevent="bookAppointment" class="space-y-4">
+                        <div>
+                            <label class="block mb-2 text-gray-700">Select Therapist</label>
+                            <select v-model="bookingForm.therapist" required class="w-full p-2 border rounded">
+                                <option v-for="therapist in therapists" :key="therapist.id" :value="therapist.id">
+                                    {{therapist.name}} - {{therapist.specialization}}
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Date</label>
+                            <input type="date" v-model="bookingForm.date" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Time</label>
+                            <input type="time" v-model="bookingForm.time" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Session Type</label>
+                            <select v-model="bookingForm.type" required class="w-full p-2 border rounded">
+                                <option value="video">Video Call</option>
+                                <option value="chat">Chat Session</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600">Book Appointment</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Video Session Page -->
+            <div v-if="currentView === 'video'">
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">Video Session</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="md:col-span-2">
+                        <div class="bg-black h-96 flex items-center justify-center text-white rounded-lg relative">
+                            <video id="localVideo" autoplay muted class="w-full h-full object-cover rounded-lg" v-show="videoStarted"></video>
+                            <video id="remoteVideo" autoplay class="w-full h-full object-cover rounded-lg hidden"></video>
+                            <p v-if="!videoStarted" class="text-center">Click Start Video to begin your session</p>
+                        </div>
+                        <div class="mt-4 flex space-x-4">
+                            <button @click="startVideo" class="bg-green-500 text-white px-6 py-3 rounded hover:bg-green-600" v-if="!videoStarted">Start Video</button>
+                            <button @click="endSession" class="bg-red-500 text-white px-6 py-3 rounded hover:bg-red-600">End Session</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="bg-white p-4 rounded-lg shadow mb-4">
+                            <h3 class="font-bold mb-2 text-gray-800">Chat</h3>
+                            <div id="chatMessages" class="h-64 overflow-y-auto mb-2 bg-gray-50 p-2 rounded">
+                                <div v-for="message in chatMessages" :key="message.id" class="mb-2">
+                                    <span class="font-bold">{{message.sender}}:</span> {{message.text}}
+                                </div>
+                            </div>
+                            <input v-model="chatMessage" @keyup.enter="sendMessage" class="w-full p-2 border rounded" placeholder="Type message...">
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="font-bold mb-2 text-gray-800">Notes</h3>
+                            <textarea v-model="sessionNotes" class="w-full p-2 border rounded" rows="5" placeholder="Session notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Page -->
+            <div v-if="currentView === 'aiChat'">
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">AI Therapy Assistant</h2>
+                <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+                    <p class="text-gray-600 mb-4">Ask questions about therapy, mental health resources, or get personalized advice.</p>
+                    <div id="aiChatMessages" class="h-96 overflow-y-auto mb-4 bg-gray-50 p-4 rounded">
+                        <div v-for="message in aiMessages" :key="message.id" class="mb-4">
+                            <div :class="message.sender === 'user' ? 'text-right' : 'text-left'">
+                                <span class="inline-block p-2 rounded" :class="message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'">{{message.text}}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input v-model="aiMessage" @keyup.enter="sendToAI" class="w-full p-2 border rounded" placeholder="Ask about therapy or resources...">
+                </div>
+            </div>
+
+            <!-- Resource Library Page -->
+            <div v-if="currentView === 'resources'">
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">Resource Library</h2>
+                <div class="mb-8">
+                    <input v-model="resourceFilter" class="p-2 border rounded w-full md:w-1/2" placeholder="Filter by category...">
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div v-for="resource in filteredResources" :key="resource.id" class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold text-gray-800">{{resource.title}}</h3>
+                        <p class="text-gray-600 mb-2">{{resource.description}}</p>
+                        <p class="text-sm text-gray-500 mb-4">{{resource.category}}</p>
+                        <a :href="resource.link" class="text-blue-500 hover:text-blue-700">Read More</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact + Support Page -->
+            <div v-if="currentView === 'contact'">
+                <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Contact & Support</h2>
+                    <form @submit.prevent="sendContactMessage" class="space-y-4">
+                        <div>
+                            <label class="block mb-2 text-gray-700">Name</label>
+                            <input type="text" v-model="contactForm.name" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Email</label>
+                            <input type="email" v-model="contactForm.email" required class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-gray-700">Message</label>
+                            <textarea v-model="contactForm.message" required class="w-full p-2 border rounded" rows="5"></textarea>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600">Send Message</button>
+                    </form>
+                    <div class="mt-8">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">24/7 Support</h3>
+                        <p class="text-gray-600">Email: support@therapyconnect.com | Phone: 1-800-THERAPY</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HIPAA Compliance & Security Info Page -->
+            <div v-if="currentView === 'hipaa'">
+                <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">HIPAA Compliance & Security</h2>
+                    <p class="text-gray-600 mb-6">Our platform ensures HIPAA-compliant data handling, encrypted communication channels, and secure session logs.</p>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Key Features</h3>
+                            <ul class="space-y-2 text-gray-600">
+                                <li><i class="bi bi-check-circle text-green-500 mr-2"></i>Encrypted communication</li>
+                                <li><i class="bi bi-check-circle text-green-500 mr-2"></i>Secure session logs</li>
+                                <li><i class="bi bi-check-circle text-green-500 mr-2"></i>HIPAA-grade data protection</li>
+                                <li><i class="bi bi-check-circle text-green-500 mr-2"></i>Licensed & verified therapists</li>
+                                <li><i class="bi bi-check-circle text-green-500 mr-2"></i>Calendar sync</li>
+                                <li><i class="bi bi-check-circle text-green-500 mr-2"></i>24/7 support</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Tech Stack</h3>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <span class="font-bold text-gray-800 mr-2">Frontend:</span>
+                                    <span class="text-gray-600">Vue.js + Tailwind CSS</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-bold text-gray-800 mr-2">Backend:</span>
+                                    <span class="text-gray-600">Node.js + Express.js</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-bold text-gray-800 mr-2">Database:</span>
+                                    <span class="text-gray-600">MongoDB</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-bold text-gray-800 mr-2">Video API:</span>
+                                    <span class="text-gray-600">WebRTC</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-bold text-gray-800 mr-2">AI Assistant:</span>
+                                    <span class="text-gray-600">Custom AI API</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-bold text-gray-800 mr-2">Real-time Chat:</span>
+                                    <span class="text-gray-600">WebSocket/Socket.io</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-8 mt-20">
+            <div class="container mx-auto text-center">
+                <p>&copy; 2023 TherapyConnect. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    currentView: 'home',
+                    loading: false,
+                    isLoggedIn: false,
+                    user: {
+                        id: '',
+                        name: '',
+                        email: '',
+                        role: ''
+                    },
+                    loginForm: {
+                        email: '',
+                        password: ''
+                    },
+                    signupForm: {
+                        name: '',
+                        email: '',
+                        password: '',
+                        role: 'client'
+                    },
+                    bookingForm: {
+                        therapist: '',
+                        date: '',
+                        time: '',
+                        type: 'video'
+                    },
+                    contactForm: {
+                        name: '',
+                        email: '',
+                        message: ''
+                    },
+                    appointments: [],
+                    therapistAppointments: [
+                        { id: 1, date: '2023-11-20 10:00', clientName: 'Alice Johnson' },
+                        { id: 2, date: '2023-11-22 14:00', clientName: 'Bob Smith' }
+                    ],
+                    therapists: [
+                        { id: 1, name: 'Dr. Sarah Johnson', specialization: 'Anxiety & Depression', image: 'https://source.unsplash.com/featured/?female-doctor' },
+                        { id: 2, name: 'Dr. Michael Chen', specialization: 'Relationship Counseling', image: 'https://source.unsplash.com/featured/?male-doctor' },
+                        { id: 3, name: 'Dr. Emily Davis', specialization: 'Trauma & PTSD', image: 'https://source.unsplash.com/featured/?doctor-woman' }
+                    ],
+                    resources: [
+                        { id: 1, title: 'Understanding Anxiety', description: 'A comprehensive guide to managing anxiety', category: 'Anxiety', link: '#' },
+                        { id: 2, title: 'Meditation Basics', description: 'Learn the fundamentals of meditation', category: 'Mindfulness', link: '#' },
+                        { id: 3, title: 'Stress Management', description: 'Effective techniques for stress relief', category: 'Stress', link: '#' },
+                        { id: 4, title: 'Building Healthy Relationships', description: 'Tips for better communication', category: 'Relationships', link: '#' },
+                        { id: 5, title: 'Overcoming Depression', description: 'Strategies for recovery', category: 'Depression', link: '#' },
+                        { id: 6, title: 'Sleep Hygiene', description: 'Improve your sleep quality', category: 'Sleep', link: '#' },
+                        { id: 7, title: 'Mindfulness Exercises', description: 'Daily practices for mental wellness', category: 'Mindfulness', link: '#' },
+                        { id: 8, title: 'Coping with Grief', description: 'Support during difficult times', category: 'Grief', link: '#' }
+                    ],
+                    resourceFilter: '',
+                    chatMessages: [],
+                    chatMessage: '',
+                    sessionNotes: '',
+                    notes: '',
+                    aiMessages: [],
+                    aiMessage: '',
+                    videoStarted: false
+                }
+            },
+            computed: {
+                filteredResources() {
+                    return this.resources.filter(r => r.category.toLowerCase().includes(this.resourceFilter.toLowerCase()) || r.title.toLowerCase().includes(this.resourceFilter.toLowerCase()))
+                }
+            },
+            methods: {
+                async handleLogin(e) {
+                    this.loading = true;
+                    // Simulate API call or use MongoDB to read user
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    this.isLoggedIn = true;
+                    this.user = {
+                        id: 'user123',
+                        name: 'John Doe',
+                        email: this.loginForm.email,
+                        role: 'client'
+                    };
+                    this.currentView = 'dashboard';
+                    this.loading = false;
+                },
+                async handleSignup(e) {
+                    this.loading = true;
+                    // Use MongoDB to create user
+                    const data = {
+                        appSlug: 'my-app-database-1234',
+                        action: 'create',
+                        collection: 'users',
+                        data: {
+                            name: this.signupForm.name,
+                            email: this.signupForm.email,
+                            password: this.signupForm.password, // In real app, hash this
+                            role: this.signupForm.role
+                        }
+                    };
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer j0vPqFhYJ4fgYLbnMGGItzx6HPn2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            this.isLoggedIn = true;
+                            this.user = {
+                                id: result.result.insertedId,
+                                name: this.signupForm.name,
+                                email: this.signupForm.email,
+                                role: this.signupForm.role
+                            };
+                            this.currentView = this.user.role === 'client' ? 'dashboard' : 'therapistDashboard';
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    this.loading = false;
+                },
+                async bookAppointment() {
+                    this.loading = true;
+                    // Use MongoDB to create appointment
+                    const data = {
+                        appSlug: 'my-app-database-1234',
+                        action: 'create',
+                        collection: 'appointments',
+                        data: {
+                            clientId: this.user.id,
+                            therapistId: this.bookingForm.therapist,
+                            date: this.bookingForm.date,
+                            time: this.bookingForm.time,
+                            type: this.bookingForm.type,
+                            status: 'scheduled'
+                        }
+                    };
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer j0vPqFhYJ4fgYLbnMGGItzx6HPn2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            this.appointments.push({
+                                id: result.result.insertedId,
+                                date: `${this.bookingForm.date} ${this.bookingForm.time}`,
+                                therapistName: this.therapists.find(t => t.id == this.bookingForm.therapist)?.name,
+                                type: this.bookingForm.type
+                            });
+                            this.bookingForm = { therapist: '', date: '', time: '', type: 'video' };
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    this.loading = false;
+                },
+                async joinSession(appointmentId) {
+                    this.loading = true;
+                    // Simulate joining video session
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    this.currentView = 'video';
+                    this.loading = false;
+                },
+                startSession(appointmentId) {
+                    this.currentView = 'video';
+                },
+                endSession() {
+                    this.videoStarted = false;
+                    const localVideo = document.getElementById('localVideo');
+                    if (localVideo.srcObject) {
+                        localVideo.srcObject.getTracks().forEach(track => track.stop());
+                        localVideo.srcObject = null;
+                    }
+                    this.currentView = this.user.role === 'client' ? 'dashboard' : 'therapistDashboard';
+                },
+                sendMessage() {
+                    if (this.chatMessage.trim()) {
+                        this.chatMessages.push({ id: Date.now(), text: this.chatMessage, sender: this.user.name });
+                        this.chatMessage = '';
+                        // Simulate response
+                        setTimeout(() => {
+                            this.chatMessages.push({ id: Date.now(), text: 'Thank you for your message. How can I help?', sender: 'Therapist' });
+                        }, 1000);
+                    }
+                },
+                sendContactMessage() {
+                    alert('Message sent! We will get back to you soon.');
+                    this.contactForm = { name: '', email: '', message: '' };
+                },
+                logout() {
+                    this.isLoggedIn = false;
+                    this.currentView = 'home';
+                    this.user = { id: '', name: '', email: '', role: '' };
+                    this.appointments = [];
+                },
+                async sendToAI() {
+                    if (this.aiMessage.trim()) {
+                        this.aiMessages.push({ id: Date.now(), text: this.aiMessage, sender: 'user' });
+                        const userMessage = this.aiMessage;
+                        this.aiMessage = '';
+                        this.loading = true;
+                        try {
+                            const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': 'Bearer j0vPqFhYJ4fgYLbnMGGItzx6HPn2',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    messages: [
+                                        {
+                                            role: 'user',
+                                            content: [
+                                                {
+                                                    type: 'text',
+                                                    text: userMessage
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                })
+                            });
+                            const result = await response.json();
+                            this.aiMessages.push({ id: Date.now(), text: result.message, sender: 'ai' });
+                        } catch (error) {
+                            console.error(error);
+                            this.aiMessages.push({ id: Date.now(), text: 'Sorry, I encountered an error. Please try again.', sender: 'ai' });
+                        }
+                        this.loading = false;
+                    }
+                },
+                async startVideo() {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                        const localVideo = document.getElementById('localVideo');
+                        localVideo.srcObject = stream;
+                        this.videoStarted = true;
+                    } catch (error) {
+                        console.error('Error accessing camera:', error);
+                        alert('Unable to access camera. Please check permissions.');
+                    }
+                }
+            }
+        }).mount('#app')
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
